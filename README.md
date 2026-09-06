@@ -5,7 +5,7 @@
 
 ## 📋 Overview
 
-IBVAP transforms standard IP-CCTV cameras into a software-defined AI surveillance network.  
+IBVAP transforms standard IP-CCTV cameras into a software-definegid AI surveillance network.  
 No dedicated smart-camera hardware required — runs entirely on a standard Windows PC with Python.
 
 **Features:**
@@ -200,5 +200,9 @@ ibvap/
 | `/api/upload/video` | POST | Upload video for batch |
 
 ---
+
+## 👨‍💻 Authors
+ **Satyala Venkata Pavan**  
+
 IBVAP — Intelligent Border Video Analytics Platform  
 Built for the Ministry of Home Affairs / Border Security Forces  
