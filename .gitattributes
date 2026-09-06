@@ -1,0 +1,5 @@
+# Ensure requirements.txt is treated as text with LF line endings
+requirements.txt text eol=lf
+
+# Optional: normalize other text files
+* text=auto
