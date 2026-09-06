@@ -97,6 +97,24 @@ Then open your browser at: **http://localhost:5000**
 
 ---
 
+### Render quick deploy (recommended for ML backend)
+
+1. Create a Render account and connect your GitHub repository.
+2. Create a new **Web Service** and choose **Docker** as the environment.
+3. Point the service at this repository — Render will use the `Dockerfile` in the repo to build the image. A `render.yaml` is provided to help with configuration.
+4. Set environment variables on Render:
+    - `MODEL_DIR` → `/app/models` (or change in `config.py` if you host models elsewhere)
+    - any DB or secret keys your deployment needs
+5. Upload or make available the model files (face detection and recognition ONNX files, YOLO weights) under the `models/` folder, or modify `app.py` to download them from an object store at container startup.
+6. Deploy — Render will build the Docker image, install `requirements-full.txt`, and start the backend with `python app.py`.
+
+Notes:
+- If you have a GPU-backed host you can adapt the `Dockerfile` to use a CUDA base image and the appropriate PyTorch wheels (modify `requirements-full.txt` accordingly).
+- Model files are large — it's recommended to store them in an object store (S3 / DigitalOcean Spaces) and download them during container startup instead of committing them into the Git repo.
+
+
+---
+
 ## 📸 Adding Cameras
 
 ### Via Dashboard (Live Feed Tab)

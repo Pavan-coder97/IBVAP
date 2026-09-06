@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ibvap-ml-backend
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: starter
+    regions: ["ocean-1"]
+    autoDeploy: true
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: MODEL_DIR
+        value: /app/models
