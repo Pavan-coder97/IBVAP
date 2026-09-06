@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBVAP | Intelligent Border Video Analytics Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ═══════════════════ ALARM BANNERS ═══════════════════════════════════ -->
+<div id="alarm-banner" class="d-none alarm-banner-intrusion">
+    🚨 INTRUSION ALERT — UNKNOWN PERSON IN RESTRICTED ZONE 🚨
+</div>
+<div id="suspect-banner" class="d-none alarm-banner-suspect">
+    ☠ SUSPECT DETECTED - WANTED PERSON IDENTIFIED ☠
+</div>
+
+<!-- ── INTRUDER MODAL OVERLAY ── -->
+<div id="intruder-modal" class="d-none" style="position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; backdrop-filter: blur(5px);">
+    <h1 class="text-danger blink" style="font-weight:900; letter-spacing:4px; font-size:3rem; text-shadow: 0 0 20px red;">🚨 UNAUTHORIZED PERSON DETECTED 🚨</h1>
+    <h3 id="intruder-modal-text" class="text-white mb-4"></h3>
+    <img id="intruder-modal-img" src="" style="max-height: 50vh; border: 4px solid #ff2244; box-shadow: 0 0 30px rgba(255,34,68,0.5);">
+    <button class="btn-cyber danger mt-4" style="font-size: 1.5rem; padding: 10px 40px;" onclick="document.getElementById('intruder-modal').classList.add('d-none')">DISMISS ALERT</button>
+</div>
+
+<!-- ═══════════════════ NAVBAR ══════════════════════════════════════════ -->
+<nav class="navbar navbar-expand-lg fixed-top">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand d-flex align-items-center" href="#dashboard">
+        <div class="brand-icon me-2">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        IBVAP
+        <span class="ms-2 text-muted" style="font-size:0.6rem; letter-spacing:2px;">INTELLIGENT BORDER VIDEO ANALYTICS PLATFORM</span>
+    </a>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav mx-auto">
+        <li class="nav-item"><a class="nav-link tab-link" href="#dashboard"><i class="fa-solid fa-chart-pie me-1"></i> Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link tab-link active" href="#live"><i class="fa-solid fa-satellite-dish me-1"></i> Live Feed</a></li>
+        <li class="nav-item"><a class="nav-link tab-link" href="#alerts"><i class="fa-solid fa-bolt me-1"></i> Alerts Log</a></li>
+        <li class="nav-item"><a class="nav-link tab-link" href="#analytics"><i class="fa-solid fa-chart-line me-1"></i> Analytics</a></li>
+        <li class="nav-item"><a class="nav-link tab-link" href="#upload"><i class="fa-solid fa-upload me-1"></i> Upload</a></li>
+        <li class="nav-item"><a class="nav-link tab-link" href="#frs"><i class="fa-solid fa-user-shield me-1"></i> FRS</a></li>
+      </ul>
+      <div class="d-flex align-items-center gap-3">
+          <span id="cam-count-badge" class="badge bg-success">0 CAMs LIVE</span>
+          <span class="sys-status"><i class="fa-solid fa-circle blink me-1"></i> SYSTEM ONLINE</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid mt-5 pt-4 px-4">
+
+<!-- ═══════════════════ DASHBOARD TAB ══════════════════════════════════ -->
+<div id="dashboard" class="tab-pane d-none">
+    <h2>System Dashboard</h2>
+    <p class="subtitle">Real-time operational overview for border surveillance</p>
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card">
+                <div class="stat-icon text-warning"><i class="fa-solid fa-car"></i></div>
+                <div class="stat-value" id="stat-vehicles">0</div>
+                <div class="stat-label">Vehicles Detected</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card">
+                <div class="stat-icon text-info"><i class="fa-solid fa-person-walking"></i></div>
+                <div class="stat-value" id="stat-persons">0</div>
+                <div class="stat-label">Persons Detected</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card danger">
+                <div class="stat-icon text-danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="stat-value text-danger" id="stat-intrusions">0</div>
+                <div class="stat-label">Intrusions</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card danger">
+                <div class="stat-icon text-danger"><i class="fa-solid fa-user-secret"></i></div>
+                <div class="stat-value text-danger" id="stat-suspects">0</div>
+                <div class="stat-label">Suspect Alerts</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card">
+                <div class="stat-icon" style="color:var(--accent-green)"><i class="fa-solid fa-hashtag"></i></div>
+                <div class="stat-value text-success" id="stat-plates">0</div>
+                <div class="stat-label">Plates Read</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="stat-card">
+                <div class="stat-icon" style="color:#0af"><i class="fa-solid fa-moon"></i></div>
+                <div class="stat-value" id="stat-night">0</div>
+                <div class="stat-label">Night Alerts</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Status + Activity Chart -->
+    <div class="row g-3">
+        <div class="col-lg-5">
+            <div class="card p-3 h-100">
+                <h6 class="text-muted small fw-bold mb-3"><i class="fa-solid fa-video me-2"></i>CAMERA STATUS</h6>
+                <div id="cam-status-list">
+                    <div class="empty-state mt-2">
+                        <i class="fa-solid fa-video-slash"></i>
+                        <div>No cameras configured</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card p-3 h-100">
+                <h6 class="text-muted small fw-bold mb-3"><i class="fa-solid fa-wave-square me-2"></i>24-HOUR ACTIVITY</h6>
+                <canvas id="chart-timeline" height="130"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ LIVE FEED TAB ══════════════════════════════════ -->
+<div id="live" class="tab-pane active">
+    <h2 class="mb-1">LIVE SURVEILLANCE FEED</h2>
+    <p class="subtitle">Real-time camera monitoring with AI detection overlay</p>
+
+    <!-- Controls row -->
+    <div class="card mb-3">
+        <div class="card-body d-flex flex-wrap align-items-end gap-3" style="padding:12px 20px;">
+            <div>
+                <label class="form-label mb-1 small text-muted">CAM ID</label>
+                <input type="text" id="new-cam-id" class="form-control form-control-sm" placeholder="CAM-02" style="width:100px;">
+            </div>
+            <div>
+                <label class="form-label mb-1 small text-muted">Source (URL / index)</label>
+                <input type="text" id="new-cam-source" class="form-control form-control-sm" placeholder="0  or  rtsp://..." style="width:260px;">
+            </div>
+            <div>
+                <label class="form-label mb-1 small text-muted">Name</label>
+                <input type="text" id="new-cam-name" class="form-control form-control-sm" placeholder="Gate A Camera" style="width:160px;">
+            </div>
+            <div>
+                <label class="form-label mb-1 small text-muted">Location</label>
+                <input type="text" id="new-cam-location" class="form-control form-control-sm" placeholder="Sector 4 North" style="width:140px;">
+            </div>
+            <button id="btn-add-cam" class="btn-cyber primary"><i class="fa-solid fa-plus me-1"></i>ADD CAMERA</button>
+            <button id="btn-stop-all" class="btn-cyber"><i class="fa-solid fa-stop me-1"></i>STOP ALL</button>
+
+            <!-- Grid layout toggle -->
+            <div class="ms-auto d-flex gap-2 align-items-center">
+                <span class="text-muted small">GRID:</span>
+                <button class="btn-cyber grid-btn active" data-grid="1x1"><i class="fa-solid fa-square"></i></button>
+                <button class="btn-cyber grid-btn" data-grid="2x2"><i class="fa-solid fa-table-cells"></i></button>
+                <button class="btn-cyber grid-btn" data-grid="2x4"><i class="fa-solid fa-table-cells-large"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Camera grid -->
+        <div class="col-md-9">
+            <!-- Zone Panel -->
+            <div class="card mb-2">
+                <div class="card-body d-flex align-items-center gap-3" style="padding:8px 16px;">
+                    <span class="text-muted small"><i class="fa-regular fa-circle me-1"></i>VIRTUAL RESTRICTED ZONE</span>
+                    <select id="zone-cam-select" class="form-select form-select-sm" style="width:140px;">
+                        <option value="CAM-01">CAM-01</option>
+                    </select>
+                    <button id="btn-draw-zone" class="btn-cyber danger"><i class="fa-solid fa-draw-polygon me-1"></i>Draw Zone</button>
+                    <button id="btn-clear-zone" class="btn-cyber"><i class="fa-solid fa-xmark me-1"></i>Clear Zone</button>
+                    <span class="text-muted ms-2" style="font-style:italic;font-size:0.7rem;">Drag on the selected camera feed to mark restricted area</span>
+                </div>
+            </div>
+
+            <div id="cam-grid" class="cam-grid cam-grid-1x1">
+                <!-- Camera cells injected by JS -->
+                <div class="cam-cell placeholder-cell">
+                    <div class="text-center text-muted">
+                        <i class="fa-solid fa-video-slash fa-2x mb-2"></i><br>
+                        Add a camera using the panel above
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Events sidebar -->
+        <div class="col-md-3">
+            <div class="events-header">
+                <span><i class="fa-solid fa-bolt text-warning me-2"></i>LIVE EVENTS</span>
+                <button class="btn-cyber" id="btn-clear-events" style="padding:2px 8px;font-size:0.6rem;">CLEAR</button>
+            </div>
+            <div id="live-events-list" style="max-height:600px;overflow-y:auto;padding-right:4px;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ ALERTS LOG TAB ═════════════════════════════════ -->
+<div id="alerts" class="tab-pane d-none">
+    <h2>Alerts Log</h2>
+    <p class="subtitle">Historical incident database — all events, filterable and exportable</p>
+
+    <!-- Filter bar -->
+    <div class="card mb-3">
+        <div class="card-body d-flex flex-wrap gap-3 align-items-end" style="padding:12px 20px;">
+            <div>
+                <label class="form-label mb-1 small text-muted">Alert Type</label>
+                <select id="filter-type" class="form-select form-select-sm" style="width:200px;">
+                    <option value="">All Types</option>
+                    <option value="INTRUSION">INTRUSION</option>
+                    <option value="SUSPECT_DETECTED">SUSPECT_DETECTED</option>
+                    <option value="NIGHT_MOVEMENT">NIGHT_MOVEMENT</option>
+                    <option value="SUSPICIOUS_LOITERING">SUSPICIOUS_LOITERING</option>
+                    <option value="CROWD_ALERT">CROWD_ALERT</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label mb-1 small text-muted">Camera</label>
+                <select id="filter-cam" class="form-select form-select-sm" style="width:130px;">
+                    <option value="">All Cameras</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label mb-1 small text-muted">From</label>
+                <input type="date" id="filter-from" class="form-control form-control-sm" style="width:150px;">
+            </div>
+            <div>
+                <label class="form-label mb-1 small text-muted">To</label>
+                <input type="date" id="filter-to" class="form-control form-control-sm" style="width:150px;">
+            </div>
+            <button id="btn-filter-alerts" class="btn-cyber primary"><i class="fa-solid fa-filter me-1"></i>FILTER</button>
+            <button id="btn-export-csv" class="btn-cyber"><i class="fa-solid fa-file-csv me-1"></i>EXPORT CSV</button>
+            <span id="alert-count" class="text-muted small ms-auto">0 records</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-sm ibvap-table mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Timestamp</th>
+                        <th>Type</th>
+                        <th>Camera</th>
+                        <th>Location</th>
+                        <th>Message</th>
+                        <th>Snapshot</th>
+                    </tr>
+                </thead>
+                <tbody id="alerts-tbody">
+                    <tr><td colspan="7" class="text-center text-muted py-4">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ ANALYTICS TAB ══════════════════════════════════ -->
+<div id="analytics" class="tab-pane d-none">
+    <h2>Analytics</h2>
+    <p class="subtitle">Intelligence summary — detections, patterns, and trends</p>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6 col-lg-3">
+            <div class="card p-3 h-100">
+                <h6 class="text-muted small fw-bold mb-3">ALERT TYPE BREAKDOWN</h6>
+                <canvas id="chart-alert-types"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card p-3 h-100">
+                <h6 class="text-muted small fw-bold mb-3">FRS PROFILE SPLIT</h6>
+                <canvas id="chart-frs-split"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card p-3 h-100">
+                <h6 class="text-muted small fw-bold mb-3">PLATES READ TODAY</h6>
+                <canvas id="chart-plates"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card p-3 h-100">
+                <h6 class="text-muted small fw-bold mb-3">QUICK STATS</h6>
+                <div id="analytics-quick" class="small"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ANPR Plate Search -->
+    <div class="card p-3">
+        <h6 class="text-muted small fw-bold mb-3"><i class="fa-solid fa-magnifying-glass me-2"></i>PLATE SEARCH</h6>
+        <div class="d-flex gap-2 mb-3">
+            <input type="text" id="plate-search-input" class="form-control form-control-sm" placeholder="Search plate number..." style="max-width:300px;">
+            <button id="btn-plate-search" class="btn-cyber primary">SEARCH</button>
+            <button id="btn-plate-all" class="btn-cyber">SHOW ALL</button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-sm ibvap-table mb-0">
+                <thead>
+                    <tr><th>#</th><th>Timestamp</th><th>Plate</th><th>Confidence</th><th>Camera</th></tr>
+                </thead>
+                <tbody id="plate-tbody">
+                    <tr><td colspan="5" class="text-center text-muted py-3">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ UPLOAD TAB ══════════════════════════════════════ -->
+<div id="upload" class="tab-pane d-none">
+    <h2>Upload Footage</h2>
+    <p class="subtitle">Batch process recorded video files through the IBVAP AI engine</p>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card p-4">
+                <h6 class="text-muted small fw-bold mb-3">SELECT VIDEO FILE</h6>
+                <div id="drop-zone" class="drop-zone">
+                    <i class="fa-solid fa-cloud-arrow-up fa-3x mb-3 text-muted"></i>
+                    <p class="mb-1">Drag & drop video file here</p>
+                    <p class="text-muted small mb-3">MP4, AVI, MOV, MKV supported</p>
+                    <input type="file" id="upload-file" class="d-none" accept="video/*">
+                    <button class="btn-cyber primary" onclick="document.getElementById('upload-file').click()">
+                        <i class="fa-solid fa-folder-open me-2"></i>Browse Files
+                    </button>
+                </div>
+                <div id="upload-filename" class="mt-2 text-muted small"></div>
+                <button id="btn-upload-start" class="btn-cyber primary w-100 mt-3" disabled>
+                    <i class="fa-solid fa-play me-2"></i>START ANALYSIS
+                </button>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-4 h-100">
+                <h6 class="text-muted small fw-bold mb-3">PROCESSING STATUS</h6>
+                <div id="upload-idle" class="empty-state">
+                    <i class="fa-solid fa-film mb-3"></i>
+                    <p class="mb-0">No video being processed</p>
+                </div>
+                <div id="upload-progress-panel" class="d-none">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small text-muted">PROCESSING</span>
+                        <span id="upload-pct" class="small text-success fw-bold">0%</span>
+                    </div>
+                    <div class="progress mb-3" style="height:6px; background:#1a2030;">
+                        <div id="upload-progress-bar" class="progress-bar bg-success" style="width:0%"></div>
+                    </div>
+                    <div id="upload-results-list" style="max-height:300px;overflow-y:auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════ FRS TAB ══════════════════════════════════════════ -->
+<div id="frs" class="tab-pane d-none">
+    <h2>Facial Recognition System</h2>
+    <p class="subtitle">Register and manage authorized persons and suspect watchlist</p>
+
+    <div class="row g-3">
+        <!-- Registration Panel -->
+        <div class="col-md-5">
+            <div class="card p-4">
+                <h6 class="text-muted small fw-bold mb-3">REGISTER PERSON</h6>
+
+                <!-- Role selector -->
+                <div class="d-flex gap-2 mb-3">
+                    <button class="btn-cyber primary flex-fill role-btn active" data-role="authorized">
+                        <i class="fa-solid fa-check-circle me-1"></i>AUTHORIZED
+                    </button>
+                    <button class="btn-cyber danger flex-fill role-btn" data-role="suspect">
+                        <i class="fa-solid fa-skull me-1"></i>SUSPECT
+                    </button>
+                </div>
+                <input type="hidden" id="frs-role" value="authorized">
+
+                <!-- Name field -->
+                <input type="text" id="frs-name" class="form-control mb-3 bg-dark text-white border-secondary"
+                       placeholder="Full Name or ID (e.g. ID-001 / Rahul Sharma)">
+
+                <!-- Method tabs -->
+                <ul class="nav nav-pills mb-3" id="frs-method-tabs">
+                    <li class="nav-item">
+                        <button class="nav-link active btn-cyber" id="tab-frs-upload" data-method="upload">
+                            <i class="fa-solid fa-image me-1"></i>Photo Upload
+                        </button>
+                    </li>
+                    <li class="nav-item ms-2">
+                        <button class="nav-link btn-cyber" id="tab-frs-webcam" data-method="webcam">
+                            <i class="fa-solid fa-camera me-1"></i>Webcam
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Upload pane -->
+                <div id="frs-pane-upload">
+                    <div id="frs-upload-drop" class="drop-zone mb-2" style="min-height:120px;">
+                        <i class="fa-solid fa-portrait fa-2x mb-2 text-muted"></i>
+                        <p class="small mb-2">Upload face photo</p>
+                        <input type="file" id="frs-file" class="d-none" accept="image/*">
+                        <button class="btn-cyber" onclick="document.getElementById('frs-file').click()">SELECT IMAGE</button>
+                    </div>
+                    <div id="frs-upload-preview" class="mb-2"></div>
+                    <button id="btn-frs-register-upload" class="btn-cyber w-100" disabled>
+                        <i class="fa-solid fa-user-plus me-1"></i>REGISTER PROFILE
+                    </button>
+                </div>
+
+                <!-- Webcam pane -->
+                <div id="frs-pane-webcam" class="d-none">
+                    <div class="webcam-container mb-2">
+                        <video id="frs-video" autoplay playsinline class="d-none"></video>
+                        <canvas id="frs-canvas" class="d-none"></canvas>
+                        <div id="frs-cam-placeholder" class="text-center py-4">
+                            <i class="fa-solid fa-camera fa-2x mb-2 text-muted"></i><br>
+                            <button id="btn-frs-startcam" class="btn-cyber primary">
+                                <i class="fa-solid fa-power-off me-1"></i>Start Camera
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mb-2">
+                        <button id="btn-frs-capture" class="btn-cyber primary flex-fill" disabled>
+                            <i class="fa-solid fa-camera me-1"></i>Capture
+                        </button>
+                        <button id="btn-frs-retake" class="btn-cyber flex-fill d-none">
+                            <i class="fa-solid fa-rotate me-1"></i>Retake
+                        </button>
+                    </div>
+                    <button id="btn-frs-register-webcam" class="btn-cyber w-100" disabled>
+                        <i class="fa-solid fa-user-plus me-1"></i>REGISTER PROFILE
+                    </button>
+                </div>
+
+                <div id="frs-result" class="mt-3 small text-center"></div>
+            </div>
+        </div>
+
+        <!-- Profiles list + Match History -->
+        <div class="col-md-7">
+            <div class="card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-muted small fw-bold mb-0">REGISTERED PROFILES</h6>
+                    <button id="btn-refresh-profiles" class="btn-cyber" style="padding:2px 8px;font-size:0.6rem;">
+                        <i class="fa-solid fa-rotate me-1"></i>REFRESH
+                    </button>
+                </div>
+                <div id="frs-profiles-grid" class="frs-grid">
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <i class="fa-solid fa-users mb-2"></i>
+                        <div>No profiles registered</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-3">
+                <h6 class="text-muted small fw-bold mb-3">RECENT FRS MATCHES</h6>
+                <div id="frs-match-history">
+                    <div class="empty-state mt-2 p-2">
+                        <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.5rem;"></i>
+                        <div style="font-size: 0.8rem;">No recent matches</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- Alert Sound -->
+<script>
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playAlarm(freq1=440, freq2=880, type='sawtooth') {
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq1, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq2, audioCtx.currentTime + 0.5);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.8);
+    } catch(e) {}
+}
+function playIntrusionAlarm() { playAlarm(440, 880, 'sawtooth'); }
+function playSuspectAlarm()   { playAlarm(300, 900, 'square'); }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

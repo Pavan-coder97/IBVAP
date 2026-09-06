@@ -1,0 +1,34 @@
+# IBVAP — Intelligent Border Video Analytics Platform
+# Central Configuration File
+
+# --- AI Models ---
+yolo_model: "../yolo26s.pt"
+sr_model: "../ESPCN_x4.pb"
+
+# --- FRS Settings ---
+frs_threshold: 0.38          # Cosine similarity for authorized persons
+frs_suspect_threshold: 0.42  # Cosine similarity for suspects (slightly higher to reduce false alarms)
+
+# --- Behavior Analytics ---
+loitering_timeout_sec: 30    # Seconds before a stationary person is flagged as suspicious
+crowd_threshold: 5           # Person count in a zone that triggers crowd alert
+
+# --- Night Vision ---
+night_luminance_threshold: 60  # Mean frame brightness (0-255) below which night mode activates
+
+# --- OCR / ANPR ---
+ocr_confidence: 0.4          # Minimum EasyOCR confidence to accept a plate reading
+use_super_resolution: true   # Apply ESPCN x4 upscaling before OCR
+
+# --- Alert System ---
+alert_cooldown_sec: 6        # Minimum seconds between repeat alerts of the same type per camera
+intrusion_snapshot: true     # Save JPEG snapshot when intrusion is detected
+
+# --- Camera Pool ---
+max_cameras: 16              # Maximum simultaneous camera streams supported
+stream_fps_limit: 30         # Max FPS per camera stream thread
+
+# --- Server ---
+host: "0.0.0.0"
+port: 5000
+debug: false
