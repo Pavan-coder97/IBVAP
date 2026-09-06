@@ -39,15 +39,24 @@ No dedicated smart-camera hardware required — runs entirely on a standard Wind
 
 ### 1. Install dependencies
 
+This repo supports two deployment modes:
+
+- Full ML backend (heavy dependencies): install `requirements-full.txt` on a server/VM that runs the models (recommended: GPU-equipped or sufficiently provisioned CPU host).
+- Lightweight frontend + proxy (for Vercel): install `requirements.txt` which contains only minimal packages used by the proxy and static site.
+
+To install full backend dependencies on your ML server:
+
 ```bash
-pip install flask flask-cors ultralytics easyocr opencv-contrib-python pyyaml numpy torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install -r requirements-full.txt
 ```
 
-Or use the existing `requirement.txt`:
+To deploy the lightweight proxy (Vercel) which serves the SPA and forwards API calls to the ML backend:
+
 ```bash
-pip install -r requirement.txt
-pip install flask-cors pyyaml
+pip install -r requirements.txt
 ```
+
+Configure the proxy by setting the environment variable `ML_BACKEND_URL` to the public URL of your ML backend (see below).
 
 ### 2. Model files
 
