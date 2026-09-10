@@ -178,6 +178,6 @@ class Tracker:
         for trk in self.tracks:
             if trk.hits >= self.min_hits or trk.age <= self.min_hits:
                 x1, y1, x2, y2 = trk.get_bbox()
-                results.append([x1, y1, x2, y2, trk.track_id, trk.class_id])
+                results.append([x1, y1, x2, y2, trk.track_id, trk.class_id, trk.no_match])
 
         return results

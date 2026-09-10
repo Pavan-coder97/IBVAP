@@ -98,6 +98,10 @@ class Detector:
         # ── Virtual Zone ──────────────────────────────────────────────────
         self.virtual_zone = None   # (x, y, w, h)
 
+        # ── Plate Detector ────────────────────────────────────────────────
+        plate_cascade_path = os.path.join(_base, "haarcascade_russian_plate_number.xml")
+        self.plate_cascade = cv2.CascadeClassifier(plate_cascade_path)
+
         # ── Event Bus ─────────────────────────────────────────────────────
         self.events: list = []
         self.track_identities = {}  # tid -> (identity, score, role)
@@ -151,9 +155,7 @@ class Detector:
                 best_name  = name
                 best_role  = role
 
-        # Threshold check (Stricter matching to prevent false positives)
-        threshold = 0.48  # Tuned for user's webcam lighting (typically 50-60%)
-        if best_score > threshold:
+        if best_name is not None:
             return best_name, best_score, best_role
         
         return None, 0.0, 'unknown'
@@ -236,8 +238,31 @@ class Detector:
                     raw_persons.append([x1, y1, x2, y2, conf, cls])
                 elif any(k in name for k in _VEHICLE_CLASSES):
                     raw_vehicles.append((x1, y1, x2, y2, conf, name))
-                elif any(p in name for p in _PLATE_CLASSES) or cls == 3:
+                elif any(p in name for p in _PLATE_CLASSES):
                     raw_plates.append((x1, y1, x2, y2))
+
+        # ── Detect Plates using Haar Cascade ──────────────────────────────
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # We can detect plates on the whole frame, or inside vehicle bounding boxes.
+        # Doing it on the whole frame is simpler and often robust enough with size constraints.
+        hc_plates = self.plate_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=4, minSize=(30, 10))
+        for (px, py, pw, ph) in hc_plates:
+            # Check for overlap with existing YOLO plates to avoid duplicates
+            overlap = False
+            for (yx1, yy1, yx2, yy2) in raw_plates:
+                # Basic overlap check (centroid inside box)
+                cx, cy = px + pw//2, py + ph//2
+                if yx1 <= cx <= yx2 and yy1 <= cy <= yy2:
+                    overlap = True
+                    break
+            if not overlap:
+                # Expand box slightly for better OCR
+                pad_x, pad_y = 5, 5
+                x1 = max(0, px - pad_x)
+                y1 = max(0, py - pad_y)
+                x2 = min(w, px + pw + pad_x)
+                y2 = min(h, py + ph + pad_y)
+                raw_plates.append((x1, y1, x2, y2))
 
         # ── Track persons ─────────────────────────────────────────────────
         tracks = self.tracker.update(raw_persons, frame)
@@ -245,8 +270,14 @@ class Detector:
 
         active_ids = set()
         for trk in tracks:
-            tx1, ty1, tx2, ty2, tid, _ = trk
+            tx1, ty1, tx2, ty2, tid, _, no_match = trk
             active_ids.add(tid)
+            
+            # If track was lost for more than 2 frames, clear its identity
+            # to prevent a new person from inheriting a ghost track's identity
+            if no_match > 2 and tid in self.track_identities:
+                del self.track_identities[tid]
+                
             person_bboxes.append((tx1, ty1, tx2, ty2))
             self._process_person(frame, tx1, ty1, tx2, ty2, tid, w, h)
 
@@ -300,23 +331,29 @@ class Detector:
         # 1. Look up cached identity for this track
         identity, score, role = self.track_identities.get(tid, (None, 0.0, 'unknown'))
 
-        # 2. If not identified, try to run FRS on the face area (top 60% of bounding box)
-        if identity is None:
-            cy2         = y1 + int((y2 - y1) * 0.6)
-            person_crop = frame[y1:cy2, x1:x2]
+        # Clip coordinates to frame boundaries to prevent numpy slice issues
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(fw, x2), min(fh, y2)
 
-            if person_crop.shape[0] > 20 and person_crop.shape[1] > 20:
-                self.yunet.setInputSize((person_crop.shape[1], person_crop.shape[0]))
-                _, faces = self.yunet.detect(person_crop)
-                if faces is not None:
-                    for face in faces:
-                        feature = self._extract_feature(person_crop, face)
-                        new_id, new_score, new_role = self._identify_face(feature)
-                        if new_id:
+        # 2. Try to run FRS on the face area (top 60% of bounding box) continuously
+        # This handles track ID merges and improves score over time
+        cy2         = y1 + int((y2 - y1) * 0.6)
+        person_crop = frame[y1:cy2, x1:x2]
+
+        if person_crop.shape[0] > 20 and person_crop.shape[1] > 20:
+            self.yunet.setInputSize((person_crop.shape[1], person_crop.shape[0]))
+            _, faces = self.yunet.detect(person_crop)
+            if faces is not None:
+                for face in faces:
+                    feature = self._extract_feature(person_crop, face)
+                    new_id, new_score, new_role = self._identify_face(feature)
+                    if new_id:
+                        # Update if we recognized someone new, or the confidence improved
+                        if identity is None or new_id != identity or new_score > score:
                             identity, score, role = new_id, new_score, new_role
                             self.track_identities[tid] = (identity, score, role)
                             break
-                self.yunet.setInputSize((fw, fh))
+            self.yunet.setInputSize((fw, fh))
 
         track_label = f"ID:{tid}"
 

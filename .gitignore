@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local runtime data
+*.db
+*.db-shm
+*.db-wal
+stdout/
+stdout
+logs/
+
+# Media / demo artifacts
+DEMO_VIDEO.mp4
+*.mp4
+*.avi
+*.mov
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
